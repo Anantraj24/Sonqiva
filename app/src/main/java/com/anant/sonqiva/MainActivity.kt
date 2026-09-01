@@ -34,6 +34,7 @@ class MainActivity : ComponentActivity() {
                     val playlists by viewModel.playlists.collectAsState()
                     val currentFolder by viewModel.currentFolder.collectAsState()
                     val playbackState by viewModel.playbackState.collectAsState()
+                    val songSortOrder by viewModel.songSortOrder.collectAsState()
 
                     SonqivaAppShell(
                         songs = songs,
@@ -43,6 +44,7 @@ class MainActivity : ComponentActivity() {
                         playlists = playlists,
                         currentFolder = currentFolder,
                         playbackState = playbackState,
+                        songSortOrder = songSortOrder,
                         onSongClick = { song ->
                             viewModel.playSong(song, songs)
                         },
@@ -119,6 +121,9 @@ class MainActivity : ComponentActivity() {
                         },
                         onRescanLibraryClick = {
                             viewModel.loadAudioLibrary()
+                        },
+                        onSortOrderSelected = { sortOrder ->
+                            viewModel.setSongSortOrder(sortOrder)
                         },
                         onPlayNext = { song ->
                             viewModel.playNext(song)

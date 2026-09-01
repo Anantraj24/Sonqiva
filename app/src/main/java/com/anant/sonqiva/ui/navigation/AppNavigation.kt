@@ -27,10 +27,13 @@ import com.anant.sonqiva.data.model.Artist
 import com.anant.sonqiva.data.model.FolderItem
 import com.anant.sonqiva.data.model.PlaybackState
 import com.anant.sonqiva.data.model.Song
+import com.anant.sonqiva.data.model.SongSortOrder
 import com.anant.sonqiva.ui.albums.AlbumDetailScreen
 import com.anant.sonqiva.ui.artists.ArtistDetailScreen
 import com.anant.sonqiva.ui.components.MiniPlayer
 import com.anant.sonqiva.ui.components.SongActionBottomSheet
+import com.anant.sonqiva.ui.components.SongSortBottomSheet
+import com.anant.sonqiva.ui.components.TrackInfoBottomSheet
 import com.anant.sonqiva.ui.folders.FoldersScreen
 import com.anant.sonqiva.ui.home.HomeScreen
 import com.anant.sonqiva.ui.library.LibraryScreen
@@ -51,6 +54,7 @@ fun SonqivaAppShell(
     playlists: List<PlaylistEntity>,
     currentFolder: FolderItem?,
     playbackState: PlaybackState,
+    songSortOrder: SongSortOrder,
     onSongClick: (Song) -> Unit,
     onAlbumClick: (Album) -> Unit,
     onArtistClick: (Artist) -> Unit,
@@ -70,6 +74,7 @@ fun SonqivaAppShell(
     onSpeedChange: (Float) -> Unit,
     onQueueItemClick: (Int) -> Unit,
     onRescanLibraryClick: () -> Unit,
+    onSortOrderSelected: (SongSortOrder) -> Unit,
     onPlayNext: ((Song) -> Unit)? = null,
     onAddToQueue: ((Song) -> Unit)? = null,
     onCreatePlaylist: ((String) -> Unit)? = null,
@@ -80,7 +85,9 @@ fun SonqivaAppShell(
     val navController = rememberNavController()
     var isFullPlayerExpanded by remember { mutableStateOf(false) }
     var selectedSongForActions by remember { mutableStateOf<Song?>(null) }
+    var songForTrackInfo by remember { mutableStateOf<Song?>(null) }
     var showCreatePlaylistDialog by remember { mutableStateOf(false) }
+    var showSortBottomSheet by remember { mutableStateOf(false) }
     var songToAddToPlaylist by remember { mutableStateOf<Song?>(null) }
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -149,6 +156,9 @@ fun SonqivaAppShell(
                             onPlayAllClick = onPlayAllClick,
                             onShuffleAllClick = onShuffleAllClick,
                             onFavoriteToggle = onFavoriteToggle,
+                            onSortClick = {
+                                showSortBottomSheet = true
+                            },
                             onSongMoreClick = { song ->
                                 selectedSongForActions = song
                             }
@@ -253,7 +263,7 @@ fun SonqivaAppShell(
                         if (playlist != null) {
                             PlaylistDetailScreen(
                                 playlist = playlist,
-                                songs = songs, // Full song list filtered inside or passed
+                                songs = songs,
                                 playbackState = playbackState,
                                 onBackClick = { navController.popBackStack() },
                                 onDeletePlaylistClick = {
@@ -329,6 +339,9 @@ fun SonqivaAppShell(
                     if (artist != null) {
                         navController.navigate(Screen.ArtistDetail.createRoute(artist.id))
                     }
+                },
+                onShowTrackInfo = {
+                    songForTrackInfo = song
                 }
             )
         }
@@ -356,6 +369,23 @@ fun SonqivaAppShell(
                     onCreatePlaylist?.invoke(name)
                     showCreatePlaylistDialog = false
                 }
+            )
+        }
+
+        // Sort Songs Bottom Sheet
+        if (showSortBottomSheet) {
+            SongSortBottomSheet(
+                currentSortOrder = songSortOrder,
+                onSortOrderSelected = onSortOrderSelected,
+                onDismiss = { showSortBottomSheet = false }
+            )
+        }
+
+        // Track Information Bottom Sheet
+        songForTrackInfo?.let { song ->
+            TrackInfoBottomSheet(
+                song = song,
+                onDismiss = { songForTrackInfo = null }
             )
         }
     }

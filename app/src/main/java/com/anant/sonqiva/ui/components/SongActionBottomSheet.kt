@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,6 +19,7 @@ import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Album
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Share
@@ -41,7 +41,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.anant.sonqiva.data.model.Song
-import com.anant.sonqiva.ui.theme.GlassBackground
 import com.anant.sonqiva.ui.theme.OnSurface
 import com.anant.sonqiva.ui.theme.OnSurfaceVariant
 import com.anant.sonqiva.ui.theme.OutlineVariant
@@ -60,6 +59,7 @@ fun SongActionBottomSheet(
     onToggleFavorite: () -> Unit,
     onGoToAlbum: () -> Unit,
     onGoToArtist: () -> Unit,
+    onShowTrackInfo: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -179,6 +179,15 @@ fun SongActionBottomSheet(
                 onClick = {
                     onGoToArtist()
                     onDismiss()
+                }
+            )
+
+            SongActionRow(
+                icon = Icons.Default.Info,
+                title = "Track Information",
+                onClick = {
+                    onDismiss()
+                    onShowTrackInfo()
                 }
             )
 

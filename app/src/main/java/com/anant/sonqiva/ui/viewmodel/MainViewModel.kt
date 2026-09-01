@@ -16,6 +16,7 @@ import com.anant.sonqiva.data.model.Artist
 import com.anant.sonqiva.data.model.FolderItem
 import com.anant.sonqiva.data.model.PlaybackState
 import com.anant.sonqiva.data.model.Song
+import com.anant.sonqiva.data.model.SongSortOrder
 import com.anant.sonqiva.data.repository.AudioRepository
 import com.anant.sonqiva.player.controller.PlaybackController
 import kotlinx.coroutines.Dispatchers
@@ -25,6 +26,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -43,8 +45,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val preferencesRepository = UserPreferencesRepository(application)
     val playbackController = PlaybackController(application)
 
-    private val _songs = MutableStateFlow<List<Song>>(emptyList())
-    val songs: StateFlow<List<Song>> = _songs.asStateFlow()
+    private val _rawScannedSongs = MutableStateFlow<List<Song>>(emptyList())
+
+    val songSortOrder: StateFlow<SongSortOrder> = preferencesRepository.songSortOrderFlow
+        .stateIn(viewModelScope, SharingStarted.Lazily, SongSortOrder.TITLE_ASC)
+
+    val favoriteIds: StateFlow<List<Long>> = database.favoriteDao().getAllFavoriteSongIds()
+        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    val songs: StateFlow<List<Song>> = combine(_rawScannedSongs, favoriteIds, songSortOrder) { rawList, favIds, sortOrder ->
+        val favSet = favIds.toSet()
+        val withFavs = rawList.map { it.copy(isFavorite = favSet.contains(it.id)) }
+        when (sortOrder) {
+            SongSortOrder.TITLE_ASC -> withFavs.sortedBy { it.title.lowercase() }
+            SongSortOrder.TITLE_DESC -> withFavs.sortedByDescending { it.title.lowercase() }
+            SongSortOrder.ARTIST_ASC -> withFavs.sortedWith(compareBy({ it.artist.lowercase() }, { it.title.lowercase() }))
+            SongSortOrder.DATE_ADDED_DESC -> withFavs.sortedByDescending { it.dateAdded }
+            SongSortOrder.DATE_ADDED_ASC -> withFavs.sortedBy { it.dateAdded }
+            SongSortOrder.DURATION_DESC -> withFavs.sortedByDescending { it.durationMs }
+            SongSortOrder.DURATION_ASC -> withFavs.sortedBy { it.durationMs }
+        }
+    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     private val _albums = MutableStateFlow<List<Album>>(emptyList())
     val albums: StateFlow<List<Album>> = _albums.asStateFlow()
@@ -60,9 +81,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     val playbackState: StateFlow<PlaybackState> = playbackController.playbackState
 
-    val favoriteIds: StateFlow<List<Long>> = database.favoriteDao().getAllFavoriteSongIds()
-        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
-
     val playlists: StateFlow<List<PlaylistEntity>> = database.playlistDao().getAllPlaylists()
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
@@ -70,28 +88,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         .stateIn(viewModelScope, SharingStarted.Lazily, false)
 
     init {
-        observeFavoritesAndSongs()
         observeStoredPreferences()
     }
 
     fun loadAudioLibrary() {
         viewModelScope.launch {
             audioRepository.getSongs().collect { scannedSongs ->
-                _songs.value = scannedSongs
+                _rawScannedSongs.value = scannedSongs
                 _albums.value = audioRepository.getAlbums(scannedSongs)
                 _artists.value = audioRepository.getArtists(scannedSongs)
                 _folders.value = audioRepository.getFolderHierarchy(scannedSongs)
-            }
-        }
-    }
-
-    private fun observeFavoritesAndSongs() {
-        viewModelScope.launch {
-            combine(_songs, favoriteIds) { songList, favIds ->
-                val favSet = favIds.toSet()
-                songList.map { it.copy(isFavorite = favSet.contains(it.id)) }
-            }.collect { updatedSongs ->
-                _songs.value = updatedSongs
             }
         }
     }
@@ -104,7 +110,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun playSong(song: Song, queue: List<Song> = _songs.value) {
+    fun setSongSortOrder(sortOrder: SongSortOrder) {
+        viewModelScope.launch {
+            preferencesRepository.setSongSortOrder(sortOrder)
+        }
+    }
+
+    fun playSong(song: Song, queue: List<Song> = songs.value) {
         playbackController.playSong(song, queue)
         recordHistory(song)
     }
@@ -195,7 +207,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun getSongsForPlaylist(playlistId: Long): Flow<List<Song>> {
         return database.playlistDao().getSongIdsForPlaylist(playlistId).map { songIds ->
             val idSet = songIds.toSet()
-            _songs.value.filter { idSet.contains(it.id) }
+            songs.value.filter { idSet.contains(it.id) }
         }
     }
 

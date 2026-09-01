@@ -1,10 +1,12 @@
 package com.anant.sonqiva
 
 import com.anant.sonqiva.data.model.Album
+import com.anant.sonqiva.data.model.AlbumSortOrder
 import com.anant.sonqiva.data.model.Artist
 import com.anant.sonqiva.data.model.PlaybackState
 import com.anant.sonqiva.data.model.RepeatMode
 import com.anant.sonqiva.data.model.Song
+import com.anant.sonqiva.data.model.SongSortOrder
 import com.anant.sonqiva.ui.navigation.Screen
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -55,6 +57,7 @@ class SonqivaCoreUnitTest {
         assertEquals("settings", Screen.Settings.route)
         assertEquals("album_detail/42", Screen.AlbumDetail.createRoute(42L))
         assertEquals("artist_detail/10", Screen.ArtistDetail.createRoute(10L))
+        assertEquals("playlist_detail/5", Screen.PlaylistDetail.createRoute(5L))
     }
 
     @Test
@@ -102,5 +105,28 @@ class SonqivaCoreUnitTest {
         )
         assertEquals("Solaris", artist.name)
         assertEquals(2, artist.albumCount)
+    }
+
+    @Test
+    fun testSongSortingLogic() {
+        val s1 = Song(id = 1L, title = "Zeta", artist = "Astro", album = "A", albumId = 1L, durationMs = 100000L, dateAdded = 100L)
+        val s2 = Song(id = 2L, title = "Alpha", artist = "Bravo", album = "A", albumId = 1L, durationMs = 300000L, dateAdded = 500L)
+        val s3 = Song(id = 3L, title = "Beta", artist = "Charlie", album = "A", albumId = 1L, durationMs = 200000L, dateAdded = 300L)
+        val list = listOf(s1, s2, s3)
+
+        val sortedTitleAsc = list.sortedBy { it.title.lowercase() }
+        assertEquals("Alpha", sortedTitleAsc[0].title)
+        assertEquals("Beta", sortedTitleAsc[1].title)
+        assertEquals("Zeta", sortedTitleAsc[2].title)
+
+        val sortedDateDesc = list.sortedByDescending { it.dateAdded }
+        assertEquals("Alpha", sortedDateDesc[0].title) // 500
+        assertEquals("Beta", sortedDateDesc[1].title)  // 300
+        assertEquals("Zeta", sortedDateDesc[2].title)  // 100
+
+        val sortedDurationDesc = list.sortedByDescending { it.durationMs }
+        assertEquals("Alpha", sortedDurationDesc[0].title) // 300000
+        assertEquals("Beta", sortedDurationDesc[1].title)     // 200000
+        assertEquals("Zeta", sortedDurationDesc[2].title)     // 100000
     }
 }

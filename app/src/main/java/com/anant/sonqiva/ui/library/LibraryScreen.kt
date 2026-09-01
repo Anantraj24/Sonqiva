@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
+import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Shuffle
@@ -73,6 +74,7 @@ fun LibraryScreen(
     onPlayAllClick: () -> Unit,
     onShuffleAllClick: () -> Unit,
     onFavoriteToggle: (Song) -> Unit,
+    onSortClick: (() -> Unit)? = null,
     onSongMoreClick: ((Song) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
@@ -134,7 +136,8 @@ fun LibraryScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(horizontal = 16.dp, vertical = 6.dp),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
                                 GlassCard(
                                     modifier = Modifier
@@ -185,6 +188,27 @@ fun LibraryScreen(
                                             style = MaterialTheme.typography.labelLarge,
                                             color = OnSurface
                                         )
+                                    }
+                                }
+
+                                if (onSortClick != null) {
+                                    GlassCard(
+                                        modifier = Modifier
+                                            .clickable(onClick = onSortClick),
+                                        shape = RoundedCornerShape(12.dp),
+                                        backgroundColor = GlassBackground
+                                    ) {
+                                        Box(
+                                            modifier = Modifier.padding(10.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.AutoMirrored.Filled.Sort,
+                                                contentDescription = "Sort",
+                                                tint = PrimaryAccent,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
                                     }
                                 }
                             }
