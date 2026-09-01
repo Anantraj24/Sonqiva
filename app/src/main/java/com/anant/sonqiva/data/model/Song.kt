@@ -4,7 +4,7 @@ import android.net.Uri
 
 data class Song(
     val id: Long,
-    val mediaUri: Uri,
+    val mediaUri: Uri? = null,
     val title: String,
     val artist: String,
     val album: String,

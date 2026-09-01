@@ -129,11 +129,15 @@ class PlaybackController(private val context: Context) {
                 .setArtworkUri(qSong.albumArtUri)
                 .build()
 
-            MediaItem.Builder()
+            val itemBuilder = MediaItem.Builder()
                 .setMediaId(qSong.id.toString())
-                .setUri(qSong.mediaUri)
                 .setMediaMetadata(metadata)
-                .build()
+
+            if (qSong.mediaUri != null) {
+                itemBuilder.setUri(qSong.mediaUri)
+            }
+
+            itemBuilder.build()
         }
 
         val targetIndex = queue.indexOfFirst { it.id == song.id }.coerceAtLeast(0)
