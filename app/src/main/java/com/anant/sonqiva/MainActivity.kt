@@ -117,6 +117,12 @@ class MainActivity : ComponentActivity() {
                         },
                         onRescanLibraryClick = {
                             viewModel.loadAudioLibrary()
+                        },
+                        onPlayNext = { song ->
+                            viewModel.playNext(song)
+                        },
+                        onAddToQueue = { song ->
+                            viewModel.addToQueue(song)
                         }
                     )
                 }

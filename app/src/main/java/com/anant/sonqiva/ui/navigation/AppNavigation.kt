@@ -15,16 +15,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.anant.sonqiva.data.model.Album
 import com.anant.sonqiva.data.model.Artist
 import com.anant.sonqiva.data.model.FolderItem
 import com.anant.sonqiva.data.model.PlaybackState
 import com.anant.sonqiva.data.model.Song
+import com.anant.sonqiva.ui.albums.AlbumDetailScreen
+import com.anant.sonqiva.ui.artists.ArtistDetailScreen
 import com.anant.sonqiva.ui.components.MiniPlayer
+import com.anant.sonqiva.ui.components.SongActionBottomSheet
 import com.anant.sonqiva.ui.folders.FoldersScreen
 import com.anant.sonqiva.ui.home.HomeScreen
 import com.anant.sonqiva.ui.library.LibraryScreen
@@ -60,10 +65,13 @@ fun SonqivaAppShell(
     onSpeedChange: (Float) -> Unit,
     onQueueItemClick: (Int) -> Unit,
     onRescanLibraryClick: () -> Unit,
+    onPlayNext: ((Song) -> Unit)? = null,
+    onAddToQueue: ((Song) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val navController = rememberNavController()
     var isFullPlayerExpanded by remember { mutableStateOf(false) }
+    var selectedSongForActions by remember { mutableStateOf<Song?>(null) }
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -95,7 +103,7 @@ fun SonqivaAppShell(
                             playbackState = playbackState,
                             onSongClick = onSongClick,
                             onAlbumClick = { album ->
-                                onAlbumClick(album)
+                                navController.navigate(Screen.AlbumDetail.createRoute(album.id))
                             },
                             onShuffleAllClick = onShuffleAllClick,
                             onFavoritesClick = {
@@ -115,8 +123,12 @@ fun SonqivaAppShell(
                             artists = artists,
                             playbackState = playbackState,
                             onSongClick = onSongClick,
-                            onAlbumClick = onAlbumClick,
-                            onArtistClick = onArtistClick,
+                            onAlbumClick = { album ->
+                                navController.navigate(Screen.AlbumDetail.createRoute(album.id))
+                            },
+                            onArtistClick = { artist ->
+                                navController.navigate(Screen.ArtistDetail.createRoute(artist.id))
+                            },
                             onPlayAllClick = onPlayAllClick,
                             onShuffleAllClick = onShuffleAllClick,
                             onFavoriteToggle = onFavoriteToggle
@@ -148,6 +160,66 @@ fun SonqivaAppShell(
                         SettingsScreen(
                             onRescanLibraryClick = onRescanLibraryClick
                         )
+                    }
+
+                    // Album Detail Screen
+                    composable(
+                        route = Screen.AlbumDetail.route,
+                        arguments = listOf(navArgument("albumId") { type = NavType.LongType })
+                    ) { backStackEntry ->
+                        val albumId = backStackEntry.arguments?.getLong("albumId") ?: -1L
+                        val album = albums.firstOrNull { it.id == albumId }
+
+                        if (album != null) {
+                            AlbumDetailScreen(
+                                album = album,
+                                playbackState = playbackState,
+                                onBackClick = { navController.popBackStack() },
+                                onSongClick = onSongClick,
+                                onPlayAllClick = {
+                                    if (album.songs.isNotEmpty()) {
+                                        onSongClick(album.songs.first())
+                                    }
+                                },
+                                onShuffleAllClick = {
+                                    val shuffled = album.songs.shuffled()
+                                    if (shuffled.isNotEmpty()) {
+                                        onSongClick(shuffled.first())
+                                    }
+                                },
+                                onFavoriteToggle = onFavoriteToggle
+                            )
+                        }
+                    }
+
+                    // Artist Detail Screen
+                    composable(
+                        route = Screen.ArtistDetail.route,
+                        arguments = listOf(navArgument("artistId") { type = NavType.LongType })
+                    ) { backStackEntry ->
+                        val artistId = backStackEntry.arguments?.getLong("artistId") ?: -1L
+                        val artist = artists.firstOrNull { it.id == artistId }
+
+                        if (artist != null) {
+                            ArtistDetailScreen(
+                                artist = artist,
+                                playbackState = playbackState,
+                                onBackClick = { navController.popBackStack() },
+                                onSongClick = onSongClick,
+                                onPlayAllClick = {
+                                    if (artist.songs.isNotEmpty()) {
+                                        onSongClick(artist.songs.first())
+                                    }
+                                },
+                                onShuffleAllClick = {
+                                    val shuffled = artist.songs.shuffled()
+                                    if (shuffled.isNotEmpty()) {
+                                        onSongClick(shuffled.first())
+                                    }
+                                },
+                                onFavoriteToggle = onFavoriteToggle
+                            )
+                        }
                     }
                 }
 
@@ -189,6 +261,27 @@ fun SonqivaAppShell(
                 },
                 onSpeedChange = onSpeedChange,
                 onQueueItemClick = onQueueItemClick
+            )
+        }
+
+        // Song Action Bottom Sheet (Long Press / More Options)
+        selectedSongForActions?.let { song ->
+            SongActionBottomSheet(
+                song = song,
+                onDismiss = { selectedSongForActions = null },
+                onPlayNext = { onPlayNext?.invoke(song) },
+                onAddToQueue = { onAddToQueue?.invoke(song) },
+                onAddToPlaylist = { /* Future Playlist Selection */ },
+                onToggleFavorite = { onFavoriteToggle(song) },
+                onGoToAlbum = {
+                    navController.navigate(Screen.AlbumDetail.createRoute(song.albumId))
+                },
+                onGoToArtist = {
+                    val artist = artists.firstOrNull { it.name.equals(song.artist, ignoreCase = true) }
+                    if (artist != null) {
+                        navController.navigate(Screen.ArtistDetail.createRoute(artist.id))
+                    }
+                }
             )
         }
     }

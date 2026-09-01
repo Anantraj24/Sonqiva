@@ -102,6 +102,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         recordHistory(song)
     }
 
+    fun playNext(song: Song) {
+        playbackController.playNext(song)
+    }
+
+    fun addToQueue(song: Song) {
+        playbackController.addToQueue(song)
+    }
+
     fun playPause() {
         playbackController.playPause()
     }

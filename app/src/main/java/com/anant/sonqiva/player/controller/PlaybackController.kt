@@ -147,6 +147,64 @@ class PlaybackController(private val context: Context) {
         controller.play()
     }
 
+    fun playNext(song: Song) {
+        val controller = mediaController ?: return
+        val currentIdx = controller.currentMediaItemIndex
+        val insertIdx = if (currentIdx >= 0) currentIdx + 1 else 0
+
+        val metadata = MediaMetadata.Builder()
+            .setTitle(song.title)
+            .setArtist(song.artist)
+            .setAlbumTitle(song.album)
+            .setArtworkUri(song.albumArtUri)
+            .build()
+
+        val itemBuilder = MediaItem.Builder()
+            .setMediaId(song.id.toString())
+            .setMediaMetadata(metadata)
+
+        if (song.mediaUri != null) {
+            itemBuilder.setUri(song.mediaUri)
+        }
+
+        controller.addMediaItem(insertIdx, itemBuilder.build())
+
+        val mutableQ = currentQueue.toMutableList()
+        if (insertIdx in 0..mutableQ.size) {
+            mutableQ.add(insertIdx, song)
+        } else {
+            mutableQ.add(song)
+        }
+        currentQueue = mutableQ
+        _playbackState.update { it.copy(queue = currentQueue) }
+    }
+
+    fun addToQueue(song: Song) {
+        val controller = mediaController ?: return
+
+        val metadata = MediaMetadata.Builder()
+            .setTitle(song.title)
+            .setArtist(song.artist)
+            .setAlbumTitle(song.album)
+            .setArtworkUri(song.albumArtUri)
+            .build()
+
+        val itemBuilder = MediaItem.Builder()
+            .setMediaId(song.id.toString())
+            .setMediaMetadata(metadata)
+
+        if (song.mediaUri != null) {
+            itemBuilder.setUri(song.mediaUri)
+        }
+
+        controller.addMediaItem(itemBuilder.build())
+
+        val mutableQ = currentQueue.toMutableList()
+        mutableQ.add(song)
+        currentQueue = mutableQ
+        _playbackState.update { it.copy(queue = currentQueue) }
+    }
+
     fun playPause() {
         val controller = mediaController ?: return
         if (controller.isPlaying) {
