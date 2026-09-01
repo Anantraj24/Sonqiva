@@ -48,36 +48,50 @@ fun AudioPermissionHandler(
     content: @Composable () -> Unit
 ) {
     val context = LocalContext.current
-    val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+
+    val requiredPermissions = remember {
+        val list = mutableListOf<String>()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            list.add(Manifest.permission.READ_MEDIA_AUDIO)
+            list.add(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            list.add(Manifest.permission.READ_EXTERNAL_STORAGE)
+        }
+        list.toTypedArray()
+    }
+
+    val audioPermissionKey = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         Manifest.permission.READ_MEDIA_AUDIO
     } else {
         Manifest.permission.READ_EXTERNAL_STORAGE
     }
 
-    var hasPermission by remember {
+    var hasAudioPermission by remember {
         mutableStateOf(
-            ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+            ContextCompat.checkSelfPermission(context, audioPermissionKey) == PackageManager.PERMISSION_GRANTED
         )
     }
 
     val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        hasPermission = isGranted
-        if (isGranted) {
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissionsMap ->
+        val audioGranted = permissionsMap[audioPermissionKey] == true ||
+                ContextCompat.checkSelfPermission(context, audioPermissionKey) == PackageManager.PERMISSION_GRANTED
+        hasAudioPermission = audioGranted
+        if (audioGranted) {
             onPermissionGranted()
         }
     }
 
     LaunchedEffect(Unit) {
-        if (!hasPermission) {
-            launcher.launch(permission)
+        if (!hasAudioPermission) {
+            launcher.launch(requiredPermissions)
         } else {
             onPermissionGranted()
         }
     }
 
-    if (hasPermission) {
+    if (hasAudioPermission) {
         content()
     } else {
         AtmosphericBackground {
@@ -122,7 +136,7 @@ fun AudioPermissionHandler(
                         Spacer(modifier = Modifier.height(10.dp))
 
                         Text(
-                            text = "Sonqiva requires permission to scan and play audio files stored on your device. No files or personal data are ever uploaded.",
+                            text = "Sonqiva requires audio storage access to discover and play songs on your device. Zero internet tracking or uploads.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = OnSurfaceVariant,
                             textAlign = TextAlign.Center
@@ -131,7 +145,7 @@ fun AudioPermissionHandler(
                         Spacer(modifier = Modifier.height(24.dp))
 
                         Button(
-                            onClick = { launcher.launch(permission) },
+                            onClick = { launcher.launch(requiredPermissions) },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = PrimaryAccent,
                                 contentColor = OnPrimary

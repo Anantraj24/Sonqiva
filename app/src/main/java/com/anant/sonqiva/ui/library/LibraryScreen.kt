@@ -24,6 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material3.Icon
@@ -66,6 +67,7 @@ fun LibraryScreen(
     artists: List<Artist>,
     playlists: List<PlaylistEntity>,
     playbackState: PlaybackState,
+    initialTabIndex: Int = 0,
     onSongClick: (Song) -> Unit,
     onAlbumClick: (Album) -> Unit,
     onArtistClick: (Artist) -> Unit,
@@ -78,9 +80,12 @@ fun LibraryScreen(
     onSongMoreClick: ((Song) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
-    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    var selectedTabIndex by remember { mutableIntStateOf(initialTabIndex) }
+    val favoriteSongs = remember(songs) { songs.filter { it.isFavorite } }
+
     val tabs = listOf(
         "Songs (${songs.size})",
+        "Favorites (${favoriteSongs.size})",
         "Albums (${albums.size})",
         "Artists (${artists.size})",
         "Playlists (${playlists.size})"
@@ -126,7 +131,7 @@ fun LibraryScreen(
 
             when (selectedTabIndex) {
                 0 -> {
-                    // Songs Tab
+                    // All Songs Tab
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(top = 12.dp, bottom = 120.dp)
@@ -229,6 +234,90 @@ fun LibraryScreen(
                 }
 
                 1 -> {
+                    // Favorites Tab
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(top = 12.dp, bottom = 120.dp)
+                    ) {
+                        if (favoriteSongs.isEmpty()) {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(40.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Icon(
+                                            imageVector = Icons.Default.Favorite,
+                                            contentDescription = null,
+                                            tint = PrimaryAccent.copy(alpha = 0.5f),
+                                            modifier = Modifier.size(48.dp)
+                                        )
+                                        Spacer(modifier = Modifier.height(12.dp))
+                                        Text(
+                                            text = "No favorite tracks yet.\nTap the heart icon on any song to add it here!",
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            color = OnSurfaceVariant,
+                                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                        )
+                                    }
+                                }
+                            }
+                        } else {
+                            item {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    GlassCard(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clickable {
+                                                favoriteSongs.firstOrNull()?.let { onSongClick(it) }
+                                            },
+                                        shape = RoundedCornerShape(12.dp),
+                                        backgroundColor = PrimaryAccent.copy(alpha = 0.15f)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(vertical = 10.dp, horizontal = 12.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.PlayArrow,
+                                                contentDescription = null,
+                                                tint = PrimaryAccent,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(
+                                                text = "Play Favorites",
+                                                style = MaterialTheme.typography.labelLarge,
+                                                color = PrimaryAccent
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            items(favoriteSongs, key = { it.id }) { song ->
+                                SongRow(
+                                    song = song,
+                                    isPlaying = playbackState.isPlaying && playbackState.currentSong?.id == song.id,
+                                    isCurrentSong = playbackState.currentSong?.id == song.id,
+                                    onClick = { onSongClick(song) },
+                                    onFavoriteToggle = { onFavoriteToggle(song) },
+                                    onMoreClick = { onSongMoreClick?.invoke(song) },
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                2 -> {
                     // Albums Grid
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(2),
@@ -246,7 +335,7 @@ fun LibraryScreen(
                     }
                 }
 
-                2 -> {
+                3 -> {
                     // Artists Grid
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(3),
@@ -264,7 +353,7 @@ fun LibraryScreen(
                     }
                 }
 
-                3 -> {
+                4 -> {
                     // Playlists Tab
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
