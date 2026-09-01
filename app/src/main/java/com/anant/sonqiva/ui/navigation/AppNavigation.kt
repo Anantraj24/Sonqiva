@@ -80,6 +80,8 @@ fun SonqivaAppShell(
     onCreatePlaylist: ((String) -> Unit)? = null,
     onDeletePlaylist: ((Long) -> Unit)? = null,
     onAddSongToPlaylist: ((Long, Long) -> Unit)? = null,
+    onSetSleepTimer: ((Int) -> Unit)? = null,
+    onCancelSleepTimer: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val navController = rememberNavController()
@@ -316,7 +318,9 @@ fun SonqivaAppShell(
                     playbackState.currentSong?.let { onFavoriteToggle(it) }
                 },
                 onSpeedChange = onSpeedChange,
-                onQueueItemClick = onQueueItemClick
+                onQueueItemClick = onQueueItemClick,
+                onSetSleepTimer = onSetSleepTimer,
+                onCancelSleepTimer = onCancelSleepTimer
             )
         }
 

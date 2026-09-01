@@ -139,6 +139,12 @@ class MainActivity : ComponentActivity() {
                         },
                         onAddSongToPlaylist = { playlistId, songId ->
                             viewModel.addSongToPlaylist(playlistId, songId)
+                        },
+                        onSetSleepTimer = { minutes ->
+                            viewModel.startSleepTimer(minutes)
+                        },
+                        onCancelSleepTimer = {
+                            viewModel.cancelSleepTimer()
                         }
                     )
                 }

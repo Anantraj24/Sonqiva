@@ -24,6 +24,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
+import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.MusicNote
@@ -87,12 +88,15 @@ fun FullPlayerScreen(
     onFavoriteToggle: () -> Unit,
     onSpeedChange: (Float) -> Unit,
     onQueueItemClick: (Int) -> Unit,
+    onSetSleepTimer: ((Int) -> Unit)? = null,
+    onCancelSleepTimer: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val song = playbackState.currentSong ?: return
 
     var showSpeedSheet by remember { mutableStateOf(false) }
     var showQueueSheet by remember { mutableStateOf(false) }
+    var showSleepTimerSheet by remember { mutableStateOf(false) }
 
     AtmosphericBackground(modifier = modifier) {
         Column(
@@ -179,10 +183,12 @@ fun FullPlayerScreen(
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center
                 )
-                Spacer(modifier = Modifier.height(4.dp))
+
+                Spacer(modifier = Modifier.height(6.dp))
+
                 Text(
-                    text = "${song.artist} • ${song.album}",
-                    style = MaterialTheme.typography.bodyLarge,
+                    text = song.artist,
+                    style = MaterialTheme.typography.titleMedium,
                     color = OnSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -192,22 +198,23 @@ fun FullPlayerScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Seek Bar
+            // Progress Bar and Time Labels
             SonqivaSeekBar(
                 positionMs = playbackState.currentPositionMs,
                 durationMs = playbackState.durationMs,
-                onSeek = onSeek
+                onSeek = onSeek,
+                modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // Main Playback Controls
+            // Primary Playback Controls Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Shuffle Button
+                // Shuffle Mode
                 IconButton(onClick = onShuffleToggle) {
                     Icon(
                         imageVector = Icons.Default.Shuffle,
@@ -216,7 +223,7 @@ fun FullPlayerScreen(
                     )
                 }
 
-                // Previous Track
+                // Previous
                 IconButton(
                     onClick = onPrevious,
                     modifier = Modifier.size(52.dp)
@@ -229,10 +236,10 @@ fun FullPlayerScreen(
                     )
                 }
 
-                // Play / Pause Hero Button
+                // Play / Pause Circular Hero Button (64dp)
                 Box(
                     modifier = Modifier
-                        .size(68.dp)
+                        .size(64.dp)
                         .clip(CircleShape)
                         .background(PrimaryGradient)
                         .clickable(onClick = onPlayPause),
@@ -246,7 +253,7 @@ fun FullPlayerScreen(
                     )
                 }
 
-                // Next Track
+                // Next
                 IconButton(
                     onClick = onNext,
                     modifier = Modifier.size(52.dp)
@@ -275,7 +282,7 @@ fun FullPlayerScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Bottom Extra Controls: Speed Selector & Queue
+            // Bottom Extra Controls: Speed Selector, Sleep Timer & Queue
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceAround,
@@ -302,6 +309,31 @@ fun FullPlayerScreen(
                             text = "${playbackState.playbackSpeed}x",
                             style = MaterialTheme.typography.labelMedium,
                             color = OnSurface
+                        )
+                    }
+                }
+
+                // Sleep Timer Button
+                GlassCard(
+                    modifier = Modifier.clickable { showSleepTimerSheet = true },
+                    shape = RoundedCornerShape(20.dp),
+                    backgroundColor = if (playbackState.sleepTimerRemainingSeconds != null) PrimaryAccent.copy(alpha = 0.18f) else GlassBackground
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Bedtime,
+                            contentDescription = "Sleep Timer",
+                            tint = if (playbackState.sleepTimerRemainingSeconds != null) PrimaryAccent else OnSurfaceVariant,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = playbackState.formattedSleepTimer ?: "Timer",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = if (playbackState.sleepTimerRemainingSeconds != null) PrimaryAccent else OnSurface
                         )
                     }
                 }
@@ -333,121 +365,177 @@ fun FullPlayerScreen(
             }
         }
 
-        // Speed Modal Sheet
+        // Speed Bottom Sheet
         if (showSpeedSheet) {
-            ModalBottomSheet(
-                onDismissRequest = { showSpeedSheet = false },
-                containerColor = SurfaceDark,
-                sheetState = rememberModalBottomSheetState()
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "Playback Speed",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = OnSurface,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-
-                    val speeds = listOf(0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f, 3.0f)
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        speeds.forEach { speed ->
-                            val isSelected = playbackState.playbackSpeed == speed
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(if (isSelected) PrimaryAccent else GlassBackground)
-                                    .clickable {
-                                        onSpeedChange(speed)
-                                        showSpeedSheet = false
-                                    }
-                                    .padding(horizontal = 10.dp, vertical = 8.dp)
-                            ) {
-                                Text(
-                                    text = "${speed}x",
-                                    style = MaterialTheme.typography.labelLarge,
-                                    color = if (isSelected) OnPrimary else OnSurface
-                                )
-                            }
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(24.dp))
-                }
-            }
+            SpeedBottomSheet(
+                currentSpeed = playbackState.playbackSpeed,
+                onSpeedSelected = { speed ->
+                    onSpeedChange(speed)
+                    showSpeedSheet = false
+                },
+                onDismiss = { showSpeedSheet = false }
+            )
         }
 
-        // Queue Modal Sheet
+        // Sleep Timer Bottom Sheet
+        if (showSleepTimerSheet) {
+            SleepTimerBottomSheet(
+                remainingSeconds = playbackState.sleepTimerRemainingSeconds,
+                onSetTimerMinutes = { minutes ->
+                    onSetSleepTimer?.invoke(minutes)
+                },
+                onCancelTimer = {
+                    onCancelSleepTimer?.invoke()
+                },
+                onDismiss = { showSleepTimerSheet = false }
+            )
+        }
+
+        // Up Next Queue Bottom Sheet
         if (showQueueSheet) {
-            ModalBottomSheet(
-                onDismissRequest = { showQueueSheet = false },
-                containerColor = SurfaceDark,
-                sheetState = rememberModalBottomSheetState()
-            ) {
-                Column(
+            QueueBottomSheet(
+                queue = playbackState.queue,
+                currentIndex = playbackState.queueIndex,
+                onItemClick = { index ->
+                    onQueueItemClick(index)
+                    showQueueSheet = false
+                },
+                onDismiss = { showQueueSheet = false }
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SpeedBottomSheet(
+    currentSpeed: Float,
+    onSpeedSelected: (Float) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val speeds = listOf(0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 1.75f, 2.0f, 2.5f, 3.0f)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = SurfaceDark,
+        sheetState = rememberModalBottomSheetState()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 12.dp)
+        ) {
+            Text(
+                text = "Playback Speed",
+                style = MaterialTheme.typography.titleLarge,
+                color = OnSurface,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            speeds.forEach { speed ->
+                val isSelected = currentSpeed == speed
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 12.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { onSpeedSelected(speed) }
+                        .padding(vertical = 12.dp, horizontal = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Up Next (${playbackState.queue.size} songs)",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = OnSurface,
-                        modifier = Modifier.padding(bottom = 12.dp)
+                        text = "${speed}x",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = if (isSelected) PrimaryAccent else OnSurface
                     )
+                    if (isSelected) {
+                        Text(
+                            text = "Active",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = PrimaryAccent
+                        )
+                    }
+                }
+            }
 
-                    LazyColumn(
-                        modifier = Modifier.fillMaxWidth().height(360.dp)
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun QueueBottomSheet(
+    queue: List<Song>,
+    currentIndex: Int,
+    onItemClick: (Int) -> Unit,
+    onDismiss: () -> Unit
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = SurfaceDark,
+        sheetState = rememberModalBottomSheetState()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 12.dp)
+        ) {
+            Text(
+                text = "Up Next (${queue.size})",
+                style = MaterialTheme.typography.titleLarge,
+                color = OnSurface,
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(380.dp),
+                contentPadding = PaddingValues(bottom = 24.dp)
+            ) {
+                itemsIndexed(queue) { index, queueSong ->
+                    val isCurrent = index == currentIndex
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(if (isCurrent) PrimaryAccent.copy(alpha = 0.12f) else Color.Transparent)
+                            .clickable { onItemClick(index) }
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        itemsIndexed(playbackState.queue) { index, queueSong ->
-                            val isCurrent = index == playbackState.queueIndex
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(if (isCurrent) PrimaryAccent.copy(alpha = 0.15f) else Color.Transparent)
-                                    .clickable {
-                                        onQueueItemClick(index)
-                                        showQueueSheet = false
-                                    }
-                                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "${index + 1}",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = if (isCurrent) PrimaryAccent else OnSurfaceVariant,
-                                    modifier = Modifier.width(28.dp)
-                                )
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = queueSong.title,
-                                        style = MaterialTheme.typography.titleSmall,
-                                        color = if (isCurrent) PrimaryAccent else OnSurface,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                    Text(
-                                        text = queueSong.artist,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = OnSurfaceVariant,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
-                                Text(
-                                    text = queueSong.formattedDuration,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = OnSurfaceVariant
-                                )
-                            }
+                        Text(
+                            text = "${index + 1}",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = if (isCurrent) PrimaryAccent else OnSurfaceVariant,
+                            modifier = Modifier.width(24.dp)
+                        )
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = queueSong.title,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = if (isCurrent) PrimaryAccent else OnSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = queueSong.artist,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = OnSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
+
+                        Text(
+                            text = queueSong.formattedDuration,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = OnSurfaceVariant
+                        )
                     }
                 }
             }

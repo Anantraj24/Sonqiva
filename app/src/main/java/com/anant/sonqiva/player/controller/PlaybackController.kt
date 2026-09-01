@@ -278,17 +278,29 @@ class PlaybackController(private val context: Context) {
 
     fun startSleepTimer(minutes: Int) {
         sleepTimerJob?.cancel()
-        if (minutes <= 0) return
+        if (minutes <= 0) {
+            cancelSleepTimer()
+            return
+        }
+
+        var remainingSeconds = minutes * 60
+        _playbackState.update { it.copy(sleepTimerRemainingSeconds = remainingSeconds) }
 
         sleepTimerJob = scope.launch {
-            delay(minutes * 60 * 1000L)
+            while (remainingSeconds > 0) {
+                delay(1000L)
+                remainingSeconds -= 1
+                _playbackState.update { it.copy(sleepTimerRemainingSeconds = remainingSeconds) }
+            }
             mediaController?.pause()
+            _playbackState.update { it.copy(sleepTimerRemainingSeconds = null) }
         }
     }
 
     fun cancelSleepTimer() {
         sleepTimerJob?.cancel()
         sleepTimerJob = null
+        _playbackState.update { it.copy(sleepTimerRemainingSeconds = null) }
     }
 
     private fun updatePlaybackState() {

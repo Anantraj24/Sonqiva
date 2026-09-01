@@ -21,29 +21,13 @@ data class Artist(
     val songs: List<Song> = emptyList()
 )
 
-data class Genre(
-    val id: Long,
-    val name: String,
-    val songCount: Int = 0,
-    val songs: List<Song> = emptyList()
-)
-
 data class FolderItem(
     val name: String,
     val path: String,
     val parentPath: String? = null,
     val songCount: Int = 0,
     val subFolderCount: Int = 0,
-    val songs: List<Song> = emptyList(),
-    val subFolders: List<FolderItem> = emptyList()
-)
-
-data class Playlist(
-    val id: Long,
-    val name: String,
-    val createdAt: Long = System.currentTimeMillis(),
-    val songCount: Int = 0,
-    val coverArtUri: Uri? = null,
+    val subFolders: List<FolderItem> = emptyList(),
     val songs: List<Song> = emptyList()
 )
 
@@ -64,7 +48,8 @@ data class PlaybackState(
     val repeatMode: RepeatMode = RepeatMode.OFF,
     val queue: List<Song> = emptyList(),
     val queueIndex: Int = -1,
-    val isFavorite: Boolean = false
+    val isFavorite: Boolean = false,
+    val sleepTimerRemainingSeconds: Int? = null
 ) {
     val progress: Float
         get() = if (durationMs > 0) (currentPositionMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f) else 0f
@@ -83,5 +68,13 @@ data class PlaybackState(
             val minutes = totalSeconds / 60
             val seconds = totalSeconds % 60
             return String.format("%d:%02d", minutes, seconds)
+        }
+
+    val formattedSleepTimer: String?
+        get() {
+            val sec = sleepTimerRemainingSeconds ?: return null
+            val mins = sec / 60
+            val remSec = sec % 60
+            return String.format("%d:%02d", mins, remSec)
         }
 }

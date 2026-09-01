@@ -166,6 +166,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun startSleepTimer(minutes: Int) {
+        playbackController.startSleepTimer(minutes)
+    }
+
+    fun cancelSleepTimer() {
+        playbackController.cancelSleepTimer()
+    }
+
     fun toggleFavorite(song: Song) {
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
