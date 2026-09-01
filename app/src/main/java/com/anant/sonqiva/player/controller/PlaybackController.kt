@@ -2,13 +2,10 @@ package com.anant.sonqiva.player.controller
 
 import android.content.ComponentName
 import android.content.Context
-import android.net.Uri
-import androidx.annotation.OptIn
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
-import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.anant.sonqiva.data.model.PlaybackState
@@ -39,6 +36,7 @@ class PlaybackController(private val context: Context) {
 
     private var currentQueue: List<Song> = emptyList()
     private var positionUpdateJob: Job? = null
+    private var sleepTimerJob: Job? = null
 
     init {
         initializeController()
@@ -216,6 +214,21 @@ class PlaybackController(private val context: Context) {
         }
     }
 
+    fun startSleepTimer(minutes: Int) {
+        sleepTimerJob?.cancel()
+        if (minutes <= 0) return
+
+        sleepTimerJob = scope.launch {
+            delay(minutes * 60 * 1000L)
+            mediaController?.pause()
+        }
+    }
+
+    fun cancelSleepTimer() {
+        sleepTimerJob?.cancel()
+        sleepTimerJob = null
+    }
+
     private fun updatePlaybackState() {
         val controller = mediaController ?: return
         val currentMediaId = controller.currentMediaItem?.mediaId?.toLongOrNull()
@@ -245,6 +258,7 @@ class PlaybackController(private val context: Context) {
 
     fun release() {
         stopPositionUpdates()
+        sleepTimerJob?.cancel()
         controllerFuture?.let { MediaController.releaseFuture(it) }
         mediaController = null
     }
