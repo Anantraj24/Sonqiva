@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import com.anant.sonqiva.data.local.database.FavoriteEntity
 import com.anant.sonqiva.data.local.database.PlaybackHistoryEntity
+import com.anant.sonqiva.data.local.database.PlaylistEntity
+import com.anant.sonqiva.data.local.database.PlaylistSongEntity
 import com.anant.sonqiva.data.local.database.SonqivaDatabase
 import com.anant.sonqiva.data.local.datastore.UserPreferencesRepository
 import com.anant.sonqiva.data.local.mediastore.MediaStoreAudioDataSource
@@ -17,11 +19,13 @@ import com.anant.sonqiva.data.model.Song
 import com.anant.sonqiva.data.repository.AudioRepository
 import com.anant.sonqiva.player.controller.PlaybackController
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -57,6 +61,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val playbackState: StateFlow<PlaybackState> = playbackController.playbackState
 
     val favoriteIds: StateFlow<List<Long>> = database.favoriteDao().getAllFavoriteSongIds()
+        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    val playlists: StateFlow<List<PlaylistEntity>> = database.playlistDao().getAllPlaylists()
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     val lowMemoryMode: StateFlow<Boolean> = preferencesRepository.lowMemoryModeFlow
@@ -156,6 +163,39 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     database.favoriteDao().insertFavorite(FavoriteEntity(songId = song.id))
                 }
             }
+        }
+    }
+
+    fun createPlaylist(name: String) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                database.playlistDao().insertPlaylist(PlaylistEntity(name = name))
+            }
+        }
+    }
+
+    fun deletePlaylist(playlistId: Long) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                database.playlistDao().deletePlaylist(playlistId)
+            }
+        }
+    }
+
+    fun addSongToPlaylist(playlistId: Long, songId: Long) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                database.playlistDao().addSongToPlaylist(
+                    PlaylistSongEntity(playlistId = playlistId, songId = songId)
+                )
+            }
+        }
+    }
+
+    fun getSongsForPlaylist(playlistId: Long): Flow<List<Song>> {
+        return database.playlistDao().getSongIdsForPlaylist(playlistId).map { songIds ->
+            val idSet = songIds.toSet()
+            _songs.value.filter { idSet.contains(it.id) }
         }
     }
 

@@ -1,5 +1,9 @@
 package com.anant.sonqiva.ui.settings
 
+import android.content.Context
+import android.content.Intent
+import android.media.audiofx.AudioEffect
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,11 +18,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Equalizer
 import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -32,6 +36,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.anant.sonqiva.ui.components.AtmosphericBackground
 import com.anant.sonqiva.ui.components.GlassCard
@@ -45,6 +50,7 @@ fun SettingsScreen(
     onRescanLibraryClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     var lowMemoryMode by remember { mutableStateOf(false) }
     var resumeLastTrack by remember { mutableStateOf(true) }
 
@@ -61,6 +67,49 @@ fun SettingsScreen(
                 color = OnSurface,
                 modifier = Modifier.padding(bottom = 20.dp)
             )
+
+            // Section: Audio & Sound
+            Text(
+                text = "Audio & Equalizer",
+                style = MaterialTheme.typography.titleSmall,
+                color = PrimaryAccent,
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+
+            GlassCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { launchSystemEqualizer(context) },
+                shape = RoundedCornerShape(16.dp),
+                backgroundColor = GlassBackground
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Equalizer,
+                        contentDescription = null,
+                        tint = PrimaryAccent,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "System Equalizer",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = OnSurface
+                        )
+                        Text(
+                            text = "Open system audio effects and sound tuning panel",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = OnSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
 
             // Section: Playback & Performance
             Text(
@@ -187,6 +236,17 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(120.dp))
         }
+    }
+}
+
+private fun launchSystemEqualizer(context: Context) {
+    try {
+        val intent = Intent(AudioEffect.ACTION_DISPLAY_AUDIO_EFFECT_CONTROL_PANEL).apply {
+            putExtra(AudioEffect.EXTRA_CONTENT_TYPE, AudioEffect.CONTENT_TYPE_MUSIC)
+        }
+        context.startActivity(intent)
+    } catch (e: Exception) {
+        Toast.makeText(context, "No system equalizer app found on this device", Toast.LENGTH_SHORT).show()
     }
 }
 

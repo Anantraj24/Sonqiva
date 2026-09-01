@@ -25,6 +25,16 @@ data class PlaylistEntity(
     val createdAt: Long = System.currentTimeMillis()
 )
 
+@Entity(
+    tableName = "playlist_songs",
+    primaryKeys = ["playlistId", "songId"]
+)
+data class PlaylistSongEntity(
+    val playlistId: Long,
+    val songId: Long,
+    val addedAt: Long = System.currentTimeMillis()
+)
+
 @Entity(tableName = "history")
 data class PlaybackHistoryEntity(
     @PrimaryKey
@@ -51,11 +61,23 @@ interface PlaylistDao {
     @Query("SELECT * FROM playlists ORDER BY createdAt DESC")
     fun getAllPlaylists(): Flow<List<PlaylistEntity>>
 
+    @Query("SELECT * FROM playlists WHERE id = :playlistId")
+    fun getPlaylistById(playlistId: Long): Flow<PlaylistEntity?>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertPlaylist(playlist: PlaylistEntity): Long
 
     @Query("DELETE FROM playlists WHERE id = :playlistId")
     fun deletePlaylist(playlistId: Long): Int
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun addSongToPlaylist(playlistSong: PlaylistSongEntity)
+
+    @Query("DELETE FROM playlist_songs WHERE playlistId = :playlistId AND songId = :songId")
+    fun removeSongFromPlaylist(playlistId: Long, songId: Long): Int
+
+    @Query("SELECT songId FROM playlist_songs WHERE playlistId = :playlistId ORDER BY addedAt ASC")
+    fun getSongIdsForPlaylist(playlistId: Long): Flow<List<Long>>
 }
 
 @Dao
@@ -71,8 +93,8 @@ interface HistoryDao {
 }
 
 @Database(
-    entities = [FavoriteEntity::class, PlaylistEntity::class, PlaybackHistoryEntity::class],
-    version = 1,
+    entities = [FavoriteEntity::class, PlaylistEntity::class, PlaylistSongEntity::class, PlaybackHistoryEntity::class],
+    version = 2,
     exportSchema = false
 )
 abstract class SonqivaDatabase : RoomDatabase() {

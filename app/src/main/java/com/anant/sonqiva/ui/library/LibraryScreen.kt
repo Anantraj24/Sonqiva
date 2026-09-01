@@ -21,9 +21,10 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Shuffle
-import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ScrollableTabRow
@@ -40,6 +41,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import com.anant.sonqiva.data.local.database.PlaylistEntity
 import com.anant.sonqiva.data.model.Album
 import com.anant.sonqiva.data.model.Artist
 import com.anant.sonqiva.data.model.PlaybackState
@@ -53,6 +55,7 @@ import com.anant.sonqiva.ui.theme.GlassBackground
 import com.anant.sonqiva.ui.theme.OnSurface
 import com.anant.sonqiva.ui.theme.OnSurfaceVariant
 import com.anant.sonqiva.ui.theme.PrimaryAccent
+import com.anant.sonqiva.ui.theme.SurfaceContainerHigh
 import com.anant.sonqiva.ui.theme.SurfaceDark
 
 @Composable
@@ -60,17 +63,26 @@ fun LibraryScreen(
     songs: List<Song>,
     albums: List<Album>,
     artists: List<Artist>,
+    playlists: List<PlaylistEntity>,
     playbackState: PlaybackState,
     onSongClick: (Song) -> Unit,
     onAlbumClick: (Album) -> Unit,
     onArtistClick: (Artist) -> Unit,
+    onPlaylistClick: (PlaylistEntity) -> Unit,
+    onCreatePlaylistClick: () -> Unit,
     onPlayAllClick: () -> Unit,
     onShuffleAllClick: () -> Unit,
     onFavoriteToggle: (Song) -> Unit,
+    onSongMoreClick: ((Song) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var selectedTabIndex by remember { mutableIntStateOf(0) }
-    val tabs = listOf("Songs (${songs.size})", "Albums (${albums.size})", "Artists (${artists.size})")
+    val tabs = listOf(
+        "Songs (${songs.size})",
+        "Albums (${albums.size})",
+        "Artists (${artists.size})",
+        "Playlists (${playlists.size})"
+    )
 
     AtmosphericBackground(modifier = modifier) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -117,7 +129,6 @@ fun LibraryScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(top = 12.dp, bottom = 120.dp)
                     ) {
-                        // Play All / Shuffle Actions Header
                         item {
                             Row(
                                 modifier = Modifier
@@ -186,6 +197,7 @@ fun LibraryScreen(
                                 isCurrentSong = playbackState.currentSong?.id == song.id,
                                 onClick = { onSongClick(song) },
                                 onFavoriteToggle = { onFavoriteToggle(song) },
+                                onMoreClick = { onSongMoreClick?.invoke(song) },
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)
                             )
                         }
@@ -211,7 +223,7 @@ fun LibraryScreen(
                 }
 
                 2 -> {
-                    // Artists Grid / List
+                    // Artists Grid
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(3),
                         modifier = Modifier.fillMaxSize(),
@@ -224,6 +236,90 @@ fun LibraryScreen(
                                 artist = artist,
                                 onClick = { onArtistClick(artist) }
                             )
+                        }
+                    }
+                }
+
+                3 -> {
+                    // Playlists Tab
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
+                    ) {
+                        // Create Playlist Action Card
+                        item {
+                            GlassCard(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable(onClick = onCreatePlaylistClick)
+                                    .padding(vertical = 4.dp),
+                                shape = RoundedCornerShape(14.dp),
+                                backgroundColor = PrimaryAccent.copy(alpha = 0.12f)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Add,
+                                        contentDescription = "New Playlist",
+                                        tint = PrimaryAccent,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(16.dp))
+                                    Text(
+                                        text = "Create New Playlist",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        color = PrimaryAccent
+                                    )
+                                }
+                            }
+                        }
+
+                        items(playlists, key = { it.id }) { playlist ->
+                            GlassCard(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onPlaylistClick(playlist) }
+                                    .padding(vertical = 4.dp),
+                                shape = RoundedCornerShape(14.dp),
+                                backgroundColor = GlassBackground
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(44.dp)
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .background(SurfaceContainerHigh),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Filled.QueueMusic,
+                                            contentDescription = null,
+                                            tint = PrimaryAccent,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.width(16.dp))
+
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = playlist.name,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            color = OnSurface
+                                        )
+                                        Text(
+                                            text = "Custom Playlist",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = OnSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }

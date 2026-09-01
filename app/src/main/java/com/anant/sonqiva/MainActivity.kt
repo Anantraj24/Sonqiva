@@ -31,6 +31,7 @@ class MainActivity : ComponentActivity() {
                     val albums by viewModel.albums.collectAsState()
                     val artists by viewModel.artists.collectAsState()
                     val folders by viewModel.folders.collectAsState()
+                    val playlists by viewModel.playlists.collectAsState()
                     val currentFolder by viewModel.currentFolder.collectAsState()
                     val playbackState by viewModel.playbackState.collectAsState()
 
@@ -39,6 +40,7 @@ class MainActivity : ComponentActivity() {
                         albums = albums,
                         artists = artists,
                         folders = folders,
+                        playlists = playlists,
                         currentFolder = currentFolder,
                         playbackState = playbackState,
                         onSongClick = { song ->
@@ -123,6 +125,15 @@ class MainActivity : ComponentActivity() {
                         },
                         onAddToQueue = { song ->
                             viewModel.addToQueue(song)
+                        },
+                        onCreatePlaylist = { name ->
+                            viewModel.createPlaylist(name)
+                        },
+                        onDeletePlaylist = { playlistId ->
+                            viewModel.deletePlaylist(playlistId)
+                        },
+                        onAddSongToPlaylist = { playlistId, songId ->
+                            viewModel.addSongToPlaylist(playlistId, songId)
                         }
                     )
                 }

@@ -21,6 +21,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.anant.sonqiva.data.local.database.PlaylistEntity
 import com.anant.sonqiva.data.model.Album
 import com.anant.sonqiva.data.model.Artist
 import com.anant.sonqiva.data.model.FolderItem
@@ -34,6 +35,9 @@ import com.anant.sonqiva.ui.folders.FoldersScreen
 import com.anant.sonqiva.ui.home.HomeScreen
 import com.anant.sonqiva.ui.library.LibraryScreen
 import com.anant.sonqiva.ui.player.FullPlayerScreen
+import com.anant.sonqiva.ui.playlists.AddToPlaylistBottomSheet
+import com.anant.sonqiva.ui.playlists.CreatePlaylistDialog
+import com.anant.sonqiva.ui.playlists.PlaylistDetailScreen
 import com.anant.sonqiva.ui.search.SearchScreen
 import com.anant.sonqiva.ui.settings.SettingsScreen
 import com.anant.sonqiva.ui.theme.BackgroundDark
@@ -44,6 +48,7 @@ fun SonqivaAppShell(
     albums: List<Album>,
     artists: List<Artist>,
     folders: List<FolderItem>,
+    playlists: List<PlaylistEntity>,
     currentFolder: FolderItem?,
     playbackState: PlaybackState,
     onSongClick: (Song) -> Unit,
@@ -67,11 +72,16 @@ fun SonqivaAppShell(
     onRescanLibraryClick: () -> Unit,
     onPlayNext: ((Song) -> Unit)? = null,
     onAddToQueue: ((Song) -> Unit)? = null,
+    onCreatePlaylist: ((String) -> Unit)? = null,
+    onDeletePlaylist: ((Long) -> Unit)? = null,
+    onAddSongToPlaylist: ((Long, Long) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val navController = rememberNavController()
     var isFullPlayerExpanded by remember { mutableStateOf(false) }
     var selectedSongForActions by remember { mutableStateOf<Song?>(null) }
+    var showCreatePlaylistDialog by remember { mutableStateOf(false) }
+    var songToAddToPlaylist by remember { mutableStateOf<Song?>(null) }
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -121,6 +131,7 @@ fun SonqivaAppShell(
                             songs = songs,
                             albums = albums,
                             artists = artists,
+                            playlists = playlists,
                             playbackState = playbackState,
                             onSongClick = onSongClick,
                             onAlbumClick = { album ->
@@ -129,9 +140,18 @@ fun SonqivaAppShell(
                             onArtistClick = { artist ->
                                 navController.navigate(Screen.ArtistDetail.createRoute(artist.id))
                             },
+                            onPlaylistClick = { playlist ->
+                                navController.navigate(Screen.PlaylistDetail.createRoute(playlist.id))
+                            },
+                            onCreatePlaylistClick = {
+                                showCreatePlaylistDialog = true
+                            },
                             onPlayAllClick = onPlayAllClick,
                             onShuffleAllClick = onShuffleAllClick,
-                            onFavoriteToggle = onFavoriteToggle
+                            onFavoriteToggle = onFavoriteToggle,
+                            onSongMoreClick = { song ->
+                                selectedSongForActions = song
+                            }
                         )
                     }
 
@@ -221,6 +241,32 @@ fun SonqivaAppShell(
                             )
                         }
                     }
+
+                    // Playlist Detail Screen
+                    composable(
+                        route = Screen.PlaylistDetail.route,
+                        arguments = listOf(navArgument("playlistId") { type = NavType.LongType })
+                    ) { backStackEntry ->
+                        val playlistId = backStackEntry.arguments?.getLong("playlistId") ?: -1L
+                        val playlist = playlists.firstOrNull { it.id == playlistId }
+
+                        if (playlist != null) {
+                            PlaylistDetailScreen(
+                                playlist = playlist,
+                                songs = songs, // Full song list filtered inside or passed
+                                playbackState = playbackState,
+                                onBackClick = { navController.popBackStack() },
+                                onDeletePlaylistClick = {
+                                    onDeletePlaylist?.invoke(playlist.id)
+                                    navController.popBackStack()
+                                },
+                                onSongClick = onSongClick,
+                                onPlayAllClick = onPlayAllClick,
+                                onShuffleAllClick = onShuffleAllClick,
+                                onFavoriteToggle = onFavoriteToggle
+                            )
+                        }
+                    }
                 }
 
                 // Persistent Floating Mini-Player positioned right above the BottomNavBar
@@ -271,7 +317,9 @@ fun SonqivaAppShell(
                 onDismiss = { selectedSongForActions = null },
                 onPlayNext = { onPlayNext?.invoke(song) },
                 onAddToQueue = { onAddToQueue?.invoke(song) },
-                onAddToPlaylist = { /* Future Playlist Selection */ },
+                onAddToPlaylist = {
+                    songToAddToPlaylist = song
+                },
                 onToggleFavorite = { onFavoriteToggle(song) },
                 onGoToAlbum = {
                     navController.navigate(Screen.AlbumDetail.createRoute(song.albumId))
@@ -281,6 +329,32 @@ fun SonqivaAppShell(
                     if (artist != null) {
                         navController.navigate(Screen.ArtistDetail.createRoute(artist.id))
                     }
+                }
+            )
+        }
+
+        // Add to Playlist Bottom Sheet
+        songToAddToPlaylist?.let { song ->
+            AddToPlaylistBottomSheet(
+                song = song,
+                playlists = playlists,
+                onDismiss = { songToAddToPlaylist = null },
+                onPlaylistSelected = { playlistId ->
+                    onAddSongToPlaylist?.invoke(playlistId, song.id)
+                },
+                onCreateNewPlaylistClick = {
+                    showCreatePlaylistDialog = true
+                }
+            )
+        }
+
+        // Create Playlist Dialog
+        if (showCreatePlaylistDialog) {
+            CreatePlaylistDialog(
+                onDismiss = { showCreatePlaylistDialog = false },
+                onCreate = { name ->
+                    onCreatePlaylist?.invoke(name)
+                    showCreatePlaylistDialog = false
                 }
             )
         }
