@@ -1,7 +1,11 @@
 package com.anant.sonqiva.player.service
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.app.PendingIntent
+import android.content.Context
 import android.content.Intent
+import android.os.Build
 import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
@@ -14,12 +18,19 @@ import com.anant.sonqiva.MainActivity
 
 class SonqivaMediaSessionService : MediaSessionService() {
 
+    companion object {
+        const val NOTIFICATION_CHANNEL_ID = "sonqiva_playback_channel"
+        const val NOTIFICATION_CHANNEL_NAME = "Sonqiva Playback"
+    }
+
     private var player: ExoPlayer? = null
     private var mediaSession: MediaSession? = null
 
     @OptIn(UnstableApi::class)
     override fun onCreate() {
         super.onCreate()
+
+        createNotificationChannel()
 
         // 1. Initialize ExoPlayer with Music AudioAttributes and noisy audio handling
         val audioAttributes = AudioAttributes.Builder()
@@ -45,6 +56,21 @@ class SonqivaMediaSessionService : MediaSessionService() {
             mediaSession = MediaSession.Builder(this, exoPlayer)
                 .setSessionActivity(sessionActivityPendingIntent)
                 .build()
+        }
+    }
+
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+            val channel = NotificationChannel(
+                NOTIFICATION_CHANNEL_ID,
+                NOTIFICATION_CHANNEL_NAME,
+                NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                description = "Sonqiva background music playback controls"
+                setShowBadge(false)
+            }
+            notificationManager?.createNotificationChannel(channel)
         }
     }
 
