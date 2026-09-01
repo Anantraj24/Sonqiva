@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sonqiva — Atmospheric Offline Music Player (Web Simulator)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,300..900;1,300..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0" />
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Desktop Header & Controls -->
+    <header class="app-header">
+        <div class="header-branding">
+            <div class="logo-badge">
+                <span class="material-symbols-rounded">music_note</span>
+            </div>
+            <div>
+                <h1>Sonqiva</h1>
+                <p class="subtitle">Atmospheric Offline Music Player • Stitch UI Preview</p>
+            </div>
+        </div>
+        <div class="header-actions">
+            <label class="btn btn-secondary" for="audio-file-input">
+                <span class="material-symbols-rounded">upload_file</span>
+                Load Local Audio
+            </label>
+            <input type="file" id="audio-file-input" accept="audio/*" multiple style="display:none;">
+            <button class="btn btn-secondary" id="toggle-frame-btn">
+                <span class="material-symbols-rounded">devices</span>
+                Toggle Frame
+            </button>
+            <button class="btn btn-primary" id="rescan-lib-btn">
+                <span class="material-symbols-rounded">sync</span>
+                Reset Sample Library
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="viewport-container">
+        <!-- Android Device Mockup Frame -->
+        <div class="device-frame" id="device-frame">
+            <div class="status-bar">
+                <span id="status-time">23:45</span>
+                <div class="status-icons">
+                    <span class="material-symbols-rounded" style="font-size: 14px;">wifi</span>
+                    <span class="material-symbols-rounded" style="font-size: 14px;">signal_cellular_4_bar</span>
+                    <span class="material-symbols-rounded" style="font-size: 14px;">battery_full</span>
+                </div>
+            </div>
+
+            <!-- App Screen Frame -->
+            <div class="screen-viewport">
+                <!-- Atmospheric Background Elements -->
+                <div class="atmospheric-glow glow-top"></div>
+                <div class="atmospheric-glow glow-bottom"></div>
+
+                <!-- Screen Contents Container -->
+                <div class="screens-container">
+                    <!-- HOME SCREEN -->
+                    <section class="screen active" id="screen-home">
+                        <div class="screen-header">
+                            <div class="user-greeting">
+                                <span class="greeting-time" id="greeting-label">Good Evening,</span>
+                                <h2 class="user-name">Welcome Back</h2>
+                            </div>
+                            <button class="icon-btn glass" id="home-search-btn">
+                                <span class="material-symbols-rounded">search</span>
+                            </button>
+                        </div>
+
+                        <!-- Quick Action Buttons -->
+                        <div class="quick-actions-row">
+                            <button class="quick-card primary" id="quick-shuffle-btn">
+                                <span class="material-symbols-rounded">shuffle</span>
+                                <span>Shuffle All</span>
+                            </button>
+                            <button class="quick-card glass" id="quick-favs-btn">
+                                <span class="material-symbols-rounded">favorite</span>
+                                <span>Favorites</span>
+                            </button>
+                        </div>
+
+                        <!-- Continue Listening -->
+                        <div class="section-container" id="continue-listening-section">
+                            <h3 class="section-title">Continue Listening</h3>
+                            <div class="continue-card glass" id="continue-listening-card">
+                                <div class="continue-artwork" id="continue-art">
+                                    <span class="material-symbols-rounded">music_note</span>
+                                </div>
+                                <div class="continue-info">
+                                    <h4 class="continue-title" id="continue-title">Starlight Echoes</h4>
+                                    <p class="continue-artist" id="continue-artist">Solaris</p>
+                                </div>
+                                <button class="hero-play-btn" id="continue-play-btn">
+                                    <span class="material-symbols-rounded">play_arrow</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Featured Albums Carousel -->
+                        <div class="section-container">
+                            <h3 class="section-title">Albums</h3>
+                            <div class="carousel-container" id="home-albums-carousel"></div>
+                        </div>
+
+                        <!-- Recently Added -->
+                        <div class="section-container">
+                            <h3 class="section-title">Recently Added</h3>
+                            <div class="song-list" id="home-recent-songs"></div>
+                        </div>
+                    </section>
+
+                    <!-- LIBRARY SCREEN -->
+                    <section class="screen" id="screen-library">
+                        <div class="screen-header">
+                            <h2 class="screen-title">Your Library</h2>
+                        </div>
+                        <!-- Library Tabs -->
+                        <div class="tab-bar-container">
+                            <div class="tab-item active" data-tab="songs">Songs (<span id="count-songs">0</span>)</div>
+                            <div class="tab-item" data-tab="favorites">Favorites (<span id="count-favs">0</span>)</div>
+                            <div class="tab-item" data-tab="albums">Albums (<span id="count-albums">0</span>)</div>
+                            <div class="tab-item" data-tab="artists">Artists (<span id="count-artists">0</span>)</div>
+                            <div class="tab-item" data-tab="playlists">Playlists (<span id="count-playlists">0</span>)</div>
+                        </div>
+
+                        <!-- Songs Tab Panel -->
+                        <div class="tab-panel active" id="panel-songs">
+                            <div class="list-controls-row">
+                                <button class="btn btn-small primary" id="lib-play-all-btn">
+                                    <span class="material-symbols-rounded">play_arrow</span>
+                                    Play All
+                                </button>
+                                <button class="btn btn-small glass" id="lib-shuffle-btn">
+                                    <span class="material-symbols-rounded">shuffle</span>
+                                    Shuffle
+                                </button>
+                                <button class="icon-btn glass" id="open-sort-sheet-btn">
+                                    <span class="material-symbols-rounded">sort</span>
+                                </button>
+                            </div>
+                            <div class="song-list" id="library-songs-list"></div>
+                        </div>
+
+                        <!-- Favorites Tab Panel -->
+                        <div class="tab-panel" id="panel-favorites">
+                            <div class="list-controls-row">
+                                <button class="btn btn-small primary" id="favs-play-all-btn">
+                                    <span class="material-symbols-rounded">play_arrow</span>
+                                    Play Favorites
+                                </button>
+                            </div>
+                            <div class="song-list" id="library-favorites-list"></div>
+                        </div>
+
+                        <!-- Albums Tab Panel -->
+                        <div class="tab-panel" id="panel-albums">
+                            <div class="grid-2col" id="library-albums-grid"></div>
+                        </div>
+
+                        <!-- Artists Tab Panel -->
+                        <div class="tab-panel" id="panel-artists">
+                            <div class="grid-3col" id="library-artists-grid"></div>
+                        </div>
+
+                        <!-- Playlists Tab Panel -->
+                        <div class="tab-panel" id="panel-playlists">
+                            <button class="quick-card primary full-width" id="create-playlist-btn" style="margin-bottom: 12px;">
+                                <span class="material-symbols-rounded">add</span>
+                                <span>Create New Playlist</span>
+                            </button>
+                            <div class="playlist-list" id="library-playlists-list"></div>
+                        </div>
+                    </section>
+
+                    <!-- FOLDERS SCREEN -->
+                    <section class="screen" id="screen-folders">
+                        <div class="screen-header">
+                            <div style="display:flex; align-items:center; gap: 8px;">
+                                <button class="icon-btn glass" id="folder-back-btn" style="display:none;">
+                                    <span class="material-symbols-rounded">arrow_back</span>
+                                </button>
+                                <div>
+                                    <h2 class="screen-title" id="folder-title">Folders</h2>
+                                    <p class="subtitle" id="folder-path-label">Internal Storage</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="folder-list" id="folders-container"></div>
+                    </section>
+
+                    <!-- SEARCH SCREEN -->
+                    <section class="screen" id="screen-search">
+                        <div class="screen-header">
+                            <h2 class="screen-title">Search</h2>
+                        </div>
+                        <!-- Search Bar -->
+                        <div class="search-bar-card glass">
+                            <span class="material-symbols-rounded">search</span>
+                            <input type="text" id="search-input" placeholder="Search tracks, artists, albums..." autocomplete="off">
+                            <button class="icon-btn" id="search-clear-btn" style="display:none;">
+                                <span class="material-symbols-rounded">close</span>
+                            </button>
+                        </div>
+                        <!-- Search Filter Chips -->
+                        <div class="filter-chips-row">
+                            <div class="filter-chip active" data-filter="all">All</div>
+                            <div class="filter-chip" data-filter="songs">Songs</div>
+                            <div class="filter-chip" data-filter="artists">Artists</div>
+                            <div class="filter-chip" data-filter="albums">Albums</div>
+                        </div>
+                        <div class="search-results-container" id="search-results"></div>
+                    </section>
+
+                    <!-- SETTINGS SCREEN -->
+                    <section class="screen" id="screen-settings">
+                        <div class="screen-header">
+                            <h2 class="screen-title">Settings</h2>
+                        </div>
+                        <div class="settings-group">
+                            <h4 class="settings-group-title">Audio & Output</h4>
+                            <div class="settings-item glass" id="open-equalizer-item">
+                                <div class="settings-item-info">
+                                    <span class="material-symbols-rounded">equalizer</span>
+                                    <div>
+                                        <div class="settings-label">System Equalizer</div>
+                                        <div class="settings-desc">Open audio effect DSP controls</div>
+                                    </div>
+                                </div>
+                                <span class="material-symbols-rounded">chevron_right</span>
+                            </div>
+                        </div>
+
+                        <div class="settings-group">
+                            <h4 class="settings-group-title">Performance & Cache</h4>
+                            <div class="settings-item glass">
+                                <div class="settings-item-info">
+                                    <span class="material-symbols-rounded">memory</span>
+                                    <div>
+                                        <div class="settings-label">Low Memory Mode (2GB–4GB)</div>
+                                        <div class="settings-desc">Optimizes artwork cache for budget devices</div>
+                                    </div>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox" id="low-memory-toggle" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="settings-item glass">
+                                <div class="settings-item-info">
+                                    <span class="material-symbols-rounded">replay</span>
+                                    <div>
+                                        <div class="settings-label">Auto-Resume Playback</div>
+                                        <div class="settings-desc">Restore last active track position on startup</div>
+                                    </div>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox" id="auto-resume-toggle" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="settings-group">
+                            <h4 class="settings-group-title">Library</h4>
+                            <div class="settings-item glass" id="rescan-item">
+                                <div class="settings-item-info">
+                                    <span class="material-symbols-rounded">refresh</span>
+                                    <div>
+                                        <div class="settings-label">Rescan Audio Library</div>
+                                        <div class="settings-desc">Scan storage for new audio files</div>
+                                    </div>
+                                </div>
+                                <span class="material-symbols-rounded">chevron_right</span>
+                            </div>
+                        </div>
+
+                        <div class="settings-group">
+                            <h4 class="settings-group-title">About</h4>
+                            <div class="about-card glass">
+                                <div class="logo-badge large">
+                                    <span class="material-symbols-rounded">music_note</span>
+                                </div>
+                                <h3>Sonqiva</h3>
+                                <p class="version">Version 1.0.0 (Release Build)</p>
+                                <p class="privacy-badge">100% Offline • Zero Telemetry • Zero Ads</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- DETAIL SCREENS (ALBUM, ARTIST, PLAYLIST) -->
+                    <section class="screen detail-screen" id="screen-detail">
+                        <div class="detail-header-nav">
+                            <button class="icon-btn glass" id="detail-back-btn">
+                                <span class="material-symbols-rounded">arrow_back</span>
+                            </button>
+                            <span class="detail-type-badge" id="detail-type-badge">Album</span>
+                        </div>
+                        <div class="detail-hero">
+                            <div class="detail-hero-artwork" id="detail-artwork">
+                                <span class="material-symbols-rounded">album</span>
+                            </div>
+                            <h2 class="detail-hero-title" id="detail-title">Album Title</h2>
+                            <p class="detail-hero-subtitle" id="detail-subtitle">Artist • 10 Tracks</p>
+                            <div class="detail-actions-row">
+                                <button class="btn btn-small primary" id="detail-play-btn">
+                                    <span class="material-symbols-rounded">play_arrow</span>
+                                    Play All
+                                </button>
+                                <button class="btn btn-small glass" id="detail-shuffle-btn">
+                                    <span class="material-symbols-rounded">shuffle</span>
+                                    Shuffle
+                                </button>
+                            </div>
+                        </div>
+                        <div class="song-list" id="detail-song-list"></div>
+                    </section>
+                </div>
+
+                <!-- Floating Mini Player -->
+                <div class="mini-player glass" id="mini-player">
+                    <div class="mini-artwork" id="mini-art">
+                        <span class="material-symbols-rounded">music_note</span>
+                    </div>
+                    <div class="mini-info" id="mini-info-trigger">
+                        <div class="mini-title" id="mini-title">No Track Selected</div>
+                        <div class="mini-artist" id="mini-artist">Tap a song to play</div>
+                    </div>
+                    <div class="mini-controls">
+                        <button class="mini-play-btn" id="mini-play-btn">
+                            <span class="material-symbols-rounded">play_arrow</span>
+                        </button>
+                        <button class="icon-btn" id="mini-next-btn">
+                            <span class="material-symbols-rounded">skip_next</span>
+                        </button>
+                    </div>
+                    <div class="mini-progress-bar">
+                        <div class="mini-progress-fill" id="mini-progress-fill"></div>
+                    </div>
+                </div>
+
+                <!-- Bottom Navigation Bar -->
+                <nav class="bottom-nav glass">
+                    <button class="nav-item active" data-screen="screen-home">
+                        <span class="material-symbols-rounded">home</span>
+                        <span>Home</span>
+                    </button>
+                    <button class="nav-item" data-screen="screen-library">
+                        <span class="material-symbols-rounded">library_music</span>
+                        <span>Library</span>
+                    </button>
+                    <button class="nav-item" data-screen="screen-folders">
+                        <span class="material-symbols-rounded">folder</span>
+                        <span>Folders</span>
+                    </button>
+                    <button class="nav-item" data-screen="screen-search">
+                        <span class="material-symbols-rounded">search</span>
+                        <span>Search</span>
+                    </button>
+                    <button class="nav-item" data-screen="screen-settings">
+                        <span class="material-symbols-rounded">settings</span>
+                        <span>Settings</span>
+                    </button>
+                </nav>
+
+                <!-- FULL PLAYER MODAL OVERLAY -->
+                <div class="full-player-modal" id="full-player-modal">
+                    <div class="full-player-content">
+                        <!-- Top Bar -->
+                        <div class="player-top-bar">
+                            <button class="icon-btn" id="collapse-player-btn">
+                                <span class="material-symbols-rounded">keyboard_arrow_down</span>
+                            </button>
+                            <div class="player-now-playing-label">NOW PLAYING</div>
+                            <button class="icon-btn" id="player-fav-btn">
+                                <span class="material-symbols-rounded">favorite_border</span>
+                            </button>
+                        </div>
+
+                        <!-- Hero Artwork -->
+                        <div class="player-hero-artwork-container">
+                            <div class="player-hero-artwork" id="player-art">
+                                <span class="material-symbols-rounded">music_note</span>
+                            </div>
+                        </div>
+
+                        <!-- Track Title & Artist -->
+                        <div class="player-track-info">
+                            <h2 class="player-title" id="player-title">Track Title</h2>
+                            <p class="player-artist" id="player-artist">Artist Name</p>
+                        </div>
+
+                        <!-- Seek Bar & Timing -->
+                        <div class="player-seek-container">
+                            <input type="range" id="seek-slider" min="0" max="100" value="0" step="0.1">
+                            <div class="player-time-row">
+                                <span id="time-current">0:00</span>
+                                <span id="time-duration">0:00</span>
+                            </div>
+                        </div>
+
+                        <!-- Primary Controls -->
+                        <div class="player-controls-row">
+                            <button class="icon-btn" id="player-shuffle-btn">
+                                <span class="material-symbols-rounded">shuffle</span>
+                            </button>
+                            <button class="icon-btn hero-btn" id="player-prev-btn">
+                                <span class="material-symbols-rounded">skip_previous</span>
+                            </button>
+                            <button class="hero-play-button" id="player-play-btn">
+                                <span class="material-symbols-rounded">play_arrow</span>
+                            </button>
+                            <button class="icon-btn hero-btn" id="player-next-btn">
+                                <span class="material-symbols-rounded">skip_next</span>
+                            </button>
+                            <button class="icon-btn" id="player-repeat-btn">
+                                <span class="material-symbols-rounded">repeat</span>
+                            </button>
+                        </div>
+
+                        <!-- Bottom Utility Bar -->
+                        <div class="player-utility-bar">
+                            <button class="pill-btn glass" id="open-speed-btn">
+                                <span class="material-symbols-rounded">speed</span>
+                                <span id="speed-label">1.0x</span>
+                            </button>
+                            <button class="pill-btn glass" id="open-sleep-btn">
+                                <span class="material-symbols-rounded">bedtime</span>
+                                <span id="sleep-label">Timer</span>
+                            </button>
+                            <button class="pill-btn glass" id="open-queue-btn">
+                                <span class="material-symbols-rounded">queue_music</span>
+                                <span>Queue (<span id="queue-count">0</span>)</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BOTTOM SHEETS / MODALS -->
+
+                <!-- 1. Song Actions Bottom Sheet -->
+                <div class="bottom-sheet-overlay" id="actions-sheet">
+                    <div class="bottom-sheet glass">
+                        <div class="sheet-drag-handle"></div>
+                        <div class="sheet-song-preview">
+                            <div class="sheet-artwork" id="sheet-song-art">
+                                <span class="material-symbols-rounded">music_note</span>
+                            </div>
+                            <div class="sheet-song-text">
+                                <div class="sheet-song-title" id="sheet-song-title">Song Title</div>
+                                <div class="sheet-song-artist" id="sheet-song-artist">Artist</div>
+                            </div>
+                        </div>
+                        <div class="sheet-options-list">
+                            <div class="sheet-option" id="action-play-next">
+                                <span class="material-symbols-rounded">playlist_play</span>
+                                <span>Play Next</span>
+                            </div>
+                            <div class="sheet-option" id="action-add-queue">
+                                <span class="material-symbols-rounded">queue_music</span>
+                                <span>Add to Queue</span>
+                            </div>
+                            <div class="sheet-option" id="action-add-playlist">
+                                <span class="material-symbols-rounded">playlist_add</span>
+                                <span>Add to Playlist</span>
+                            </div>
+                            <div class="sheet-option" id="action-go-album">
+                                <span class="material-symbols-rounded">album</span>
+                                <span>Go to Album</span>
+                            </div>
+                            <div class="sheet-option" id="action-go-artist">
+                                <span class="material-symbols-rounded">person</span>
+                                <span>Go to Artist</span>
+                            </div>
+                            <div class="sheet-option" id="action-track-info">
+                                <span class="material-symbols-rounded">info</span>
+                                <span>Track Information</span>
+                            </div>
+                            <div class="sheet-option" id="action-share">
+                                <span class="material-symbols-rounded">share</span>
+                                <span>Share Audio</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Sleep Timer Bottom Sheet -->
+                <div class="bottom-sheet-overlay" id="sleep-sheet">
+                    <div class="bottom-sheet glass">
+                        <div class="sheet-drag-handle"></div>
+                        <div class="sheet-header">
+                            <span class="material-symbols-rounded">bedtime</span>
+                            <h3>Sleep Timer</h3>
+                        </div>
+                        <div class="sheet-options-list">
+                            <div class="sheet-option sleep-option" data-mins="15">15 minutes</div>
+                            <div class="sheet-option sleep-option" data-mins="30">30 minutes</div>
+                            <div class="sheet-option sleep-option" data-mins="45">45 minutes</div>
+                            <div class="sheet-option sleep-option" data-mins="60">60 minutes</div>
+                            <div class="sheet-option sleep-option" data-mins="90">90 minutes</div>
+                            <div class="sheet-option danger" id="cancel-sleep-btn" style="display:none;">
+                                <span class="material-symbols-rounded">cancel</span>
+                                <span>Turn Off Timer</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Speed Bottom Sheet -->
+                <div class="bottom-sheet-overlay" id="speed-sheet">
+                    <div class="bottom-sheet glass">
+                        <div class="sheet-drag-handle"></div>
+                        <div class="sheet-header">
+                            <span class="material-symbols-rounded">speed</span>
+                            <h3>Playback Speed</h3>
+                        </div>
+                        <div class="sheet-options-list">
+                            <div class="sheet-option speed-option" data-speed="0.5">0.5x</div>
+                            <div class="sheet-option speed-option" data-speed="0.75">0.75x</div>
+                            <div class="sheet-option speed-option" data-speed="1.0">1.0x (Normal)</div>
+                            <div class="sheet-option speed-option" data-speed="1.25">1.25x</div>
+                            <div class="sheet-option speed-option" data-speed="1.5">1.5x</div>
+                            <div class="sheet-option speed-option" data-speed="1.75">1.75x</div>
+                            <div class="sheet-option speed-option" data-speed="2.0">2.0x</div>
+                            <div class="sheet-option speed-option" data-speed="3.0">3.0x</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. Sort Order Bottom Sheet -->
+                <div class="bottom-sheet-overlay" id="sort-sheet">
+                    <div class="bottom-sheet glass">
+                        <div class="sheet-drag-handle"></div>
+                        <div class="sheet-header">
+                            <span class="material-symbols-rounded">sort</span>
+                            <h3>Sort Songs</h3>
+                        </div>
+                        <div class="sheet-options-list">
+                            <div class="sheet-option sort-option active" data-sort="title_asc">Title (A to Z)</div>
+                            <div class="sheet-option sort-option" data-sort="title_desc">Title (Z to A)</div>
+                            <div class="sheet-option sort-option" data-sort="artist_asc">Artist (A to Z)</div>
+                            <div class="sheet-option sort-option" data-sort="date_desc">Recently Added</div>
+                            <div class="sheet-option sort-option" data-sort="date_asc">Oldest Added</div>
+                            <div class="sheet-option sort-option" data-sort="duration_desc">Longest Duration</div>
+                            <div class="sheet-option sort-option" data-sort="duration_asc">Shortest Duration</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. Queue Bottom Sheet -->
+                <div class="bottom-sheet-overlay" id="queue-sheet">
+                    <div class="bottom-sheet glass">
+                        <div class="sheet-drag-handle"></div>
+                        <div class="sheet-header">
+                            <span class="material-symbols-rounded">queue_music</span>
+                            <h3>Up Next</h3>
+                        </div>
+                        <div class="queue-list-container" id="queue-list-container"></div>
+                    </div>
+                </div>
+
+                <!-- 6. Track Info Bottom Sheet -->
+                <div class="bottom-sheet-overlay" id="track-info-sheet">
+                    <div class="bottom-sheet glass">
+                        <div class="sheet-drag-handle"></div>
+                        <div class="sheet-header">
+                            <span class="material-symbols-rounded">info</span>
+                            <h3>Track Information</h3>
+                        </div>
+                        <div class="info-grid" id="info-grid-container"></div>
+                    </div>
+                </div>
+
+                <!-- 7. Create / Add to Playlist Dialog -->
+                <div class="bottom-sheet-overlay" id="playlist-dialog-overlay">
+                    <div class="modal-dialog glass">
+                        <h3 id="playlist-dialog-title">Create New Playlist</h3>
+                        <input type="text" id="playlist-name-input" placeholder="Playlist Name" class="dialog-input">
+                        <div class="dialog-actions-row">
+                            <button class="btn btn-secondary" id="dialog-cancel-btn">Cancel</button>
+                            <button class="btn btn-primary" id="dialog-confirm-btn">Create</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>
