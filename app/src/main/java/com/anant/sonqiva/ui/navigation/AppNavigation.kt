@@ -183,8 +183,12 @@ fun SonqivaAppShell(
                     composable(Screen.Search.route) {
                         SearchScreen(
                             allSongs = songs,
+                            allAlbums = albums,
+                            allArtists = artists,
                             playbackState = playbackState,
-                            onSongClick = onSongClick
+                            onSongClick = onSongClick,
+                            onAlbumClick = onAlbumClick,
+                            onArtistClick = onArtistClick
                         )
                     }
 

@@ -1,5 +1,7 @@
 package com.anant.sonqiva
 
+import com.anant.sonqiva.data.local.database.PlaylistEntity
+import com.anant.sonqiva.data.local.database.PlaylistSongEntity
 import com.anant.sonqiva.data.model.Album
 import com.anant.sonqiva.data.model.AlbumSortOrder
 import com.anant.sonqiva.data.model.Artist
@@ -9,6 +11,7 @@ import com.anant.sonqiva.data.model.Song
 import com.anant.sonqiva.data.model.SongSortOrder
 import com.anant.sonqiva.ui.navigation.Screen
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -46,6 +49,18 @@ class SonqivaCoreUnitTest {
         assertEquals(0.5f, state.progress, 0.001f)
         assertEquals("0:50", state.formattedCurrentPosition)
         assertEquals("1:40", state.formattedDuration)
+    }
+
+    @Test
+    fun testSleepTimerFormatting() {
+        val inactiveState = PlaybackState()
+        assertNull(inactiveState.formattedSleepTimer)
+
+        val activeState = PlaybackState(sleepTimerRemainingSeconds = 1795) // 29m 55s
+        assertEquals("29:55", activeState.formattedSleepTimer)
+
+        val endingState = PlaybackState(sleepTimerRemainingSeconds = 5)
+        assertEquals("0:05", endingState.formattedSleepTimer)
     }
 
     @Test
@@ -108,6 +123,17 @@ class SonqivaCoreUnitTest {
     }
 
     @Test
+    fun testPlaylistEntities() {
+        val playlist = PlaylistEntity(id = 10L, name = "Workout Beats", createdAt = 12345678L)
+        assertEquals(10L, playlist.id)
+        assertEquals("Workout Beats", playlist.name)
+
+        val playlistSong = PlaylistSongEntity(playlistId = 10L, songId = 42L, addedAt = 12345678L)
+        assertEquals(10L, playlistSong.playlistId)
+        assertEquals(42L, playlistSong.songId)
+    }
+
+    @Test
     fun testSongSortingLogic() {
         val s1 = Song(id = 1L, title = "Zeta", artist = "Astro", album = "A", albumId = 1L, durationMs = 100000L, dateAdded = 100L)
         val s2 = Song(id = 2L, title = "Alpha", artist = "Bravo", album = "A", albumId = 1L, durationMs = 300000L, dateAdded = 500L)
@@ -128,5 +154,24 @@ class SonqivaCoreUnitTest {
         assertEquals("Alpha", sortedDurationDesc[0].title) // 300000
         assertEquals("Beta", sortedDurationDesc[1].title)     // 200000
         assertEquals("Zeta", sortedDurationDesc[2].title)     // 100000
+    }
+
+    @Test
+    fun testMultiCategorySearchFiltering() {
+        val songs = listOf(
+            Song(id = 1L, title = "Starlight", artist = "Muse", album = "Black Holes", albumId = 1L),
+            Song(id = 2L, title = "Supermassive Black Hole", artist = "Muse", album = "Black Holes", albumId = 1L),
+            Song(id = 3L, title = "Solaris", artist = "Atmosphere", album = "Southsiders", albumId = 2L)
+        )
+        val query = "Muse"
+
+        val matching = songs.filter {
+            it.title.contains(query, ignoreCase = true) ||
+            it.artist.contains(query, ignoreCase = true) ||
+            it.album.contains(query, ignoreCase = true)
+        }
+        assertEquals(2, matching.size)
+        assertTrue(matching.any { it.title == "Starlight" })
+        assertTrue(matching.any { it.title == "Supermassive Black Hole" })
     }
 }
