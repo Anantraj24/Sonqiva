@@ -89,6 +89,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         observeStoredPreferences()
+        observeSongsForPlayback()
+    }
+
+    private fun observeSongsForPlayback() {
+        viewModelScope.launch {
+            songs.collect { songList ->
+                if (songList.isNotEmpty()) {
+                    playbackController.onSongsUpdated(songList)
+                }
+            }
+        }
     }
 
     fun loadAudioLibrary() {

@@ -9,18 +9,21 @@ import android.os.Build
 import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
-import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import com.anant.sonqiva.MainActivity
+import com.anant.sonqiva.R
 
 class SonqivaMediaSessionService : MediaSessionService() {
 
     companion object {
         const val NOTIFICATION_CHANNEL_ID = "sonqiva_playback_channel"
         const val NOTIFICATION_CHANNEL_NAME = "Sonqiva Playback"
+        const val NOTIFICATION_ID = 1001
     }
 
     private var player: ExoPlayer? = null
@@ -31,6 +34,14 @@ class SonqivaMediaSessionService : MediaSessionService() {
         super.onCreate()
 
         createNotificationChannel()
+
+        // Configure notification provider to use our playback notification channel
+        val notificationProvider = DefaultMediaNotificationProvider.Builder(this)
+            .setNotificationId(NOTIFICATION_ID)
+            .setChannelId(NOTIFICATION_CHANNEL_ID)
+            .setChannelName(R.string.playback_channel_name)
+            .build()
+        setMediaNotificationProvider(notificationProvider)
 
         // 1. Initialize ExoPlayer with Music AudioAttributes and noisy audio handling
         val audioAttributes = AudioAttributes.Builder()
@@ -51,10 +62,11 @@ class SonqivaMediaSessionService : MediaSessionService() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
-        // 3. Build MediaSession
+        // 3. Build MediaSession with Callback
         player?.let { exoPlayer ->
             mediaSession = MediaSession.Builder(this, exoPlayer)
                 .setSessionActivity(sessionActivityPendingIntent)
+                .setCallback(MediaSessionCallback())
                 .build()
         }
     }
@@ -74,6 +86,18 @@ class SonqivaMediaSessionService : MediaSessionService() {
         }
     }
 
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        super.onStartCommand(intent, flags, startId)
+        return START_STICKY
+    }
+
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        val currentPlayer = mediaSession?.player
+        if (currentPlayer == null || !currentPlayer.playWhenReady || currentPlayer.mediaItemCount == 0 || currentPlayer.playbackState == Player.STATE_ENDED) {
+            stopSelf()
+        }
+    }
+
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {
         return mediaSession
     }
@@ -86,5 +110,18 @@ class SonqivaMediaSessionService : MediaSessionService() {
         }
         player = null
         super.onDestroy()
+    }
+
+    private inner class MediaSessionCallback : MediaSession.Callback {
+        override fun onConnect(
+            session: MediaSession,
+            controller: MediaSession.ControllerInfo
+        ): MediaSession.ConnectionResult {
+            val connectionResult = super.onConnect(session, controller)
+            return MediaSession.ConnectionResult.accept(
+                connectionResult.availableSessionCommands,
+                connectionResult.availablePlayerCommands
+            )
+        }
     }
 }

@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Sonqiva</string>
+    <string name="playback_channel_name">Sonqiva Playback</string>
 </resources>
